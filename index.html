@@ -1,48 +1,912 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width">
-  <script src="https://unpkg.com/@bbob/parser@2.9.0/dist/index.js"></script>
-  <script src="https://unpkg.com/@bbob/core@2.9.0/dist/index.js"></script>
-  <script src="https://unpkg.com/@bbob/html@2.9.0/dist/index.js"></script>
-  <script src="https://unpkg.com/@bbob/preset-html5@2.9.0/dist/index.js"></script>
-  
-</head>
-<body>
-    <div class="container">
-      <tt id="htmlinfo"></tt>
-      <div id="htmlimage"></div>
-    </div>
-  </div>
-  <div id="time"></div>
-  <div id="error"></div>
-  <script type="text/javascript">
-        function b64DecodeUnicode(str) {
-            return decodeURIComponent(atob(str).split('').map(function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join(''));
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <script src="https://unpkg.com/@bbob/parser/dist/index.js"></script>
+    <script src="https://unpkg.com/@bbob/core/dist/index.js"></script>
+    <script src="https://unpkg.com/@bbob/html/dist/index.js"></script>
+    <script src="https://unpkg.com/@bbob/preset-html5/dist/index.js"></script>
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --bg-primary: #ffffff;
+        --bg-secondary: #f8f9fa;
+        --text-primary: #212529;
+        --text-secondary: #6c757d;
+        --border-color: #dee2e6;
+        --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        --accent: #0d6efd;
+        --accent-hover: #0b5ed7;
+        --table-header: #e9ecef;
+      }
+
+      [data-theme="dark"] {
+        --bg-primary: #1a1a1a !important;
+        --bg-secondary: #2d2d2d !important;
+        --text-primary: #e9ecef !important;
+        --text-secondary: #adb5bd !important;
+        --border-color: #495057 !important;
+        --shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+        --accent: #4a9eff !important;
+        --accent-hover: #6bb0ff !important;
+        --table-header: #3d3d3d !important;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        background-color: var(--bg-primary);
+        color: var(--text-primary);
+        line-height: 1.5;
+        transition: background-color 0.3s, color 0.3s;
+        padding: 16px;
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+      }
+
+      .header h1 {
+        font-size: 1.4rem;
+        font-weight: 600;
+      }
+
+      .theme-toggle {
+        background: var(--bg-secondary);
+        border: 2px solid var(--border-color);
+        color: var(--text-primary);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 18px;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .theme-toggle:hover {
+        background: var(--accent);
+        color: white;
+        border-color: var(--accent);
+        transform: scale(1.1);
+      }
+
+      .metadata-section {
+        background: var(--bg-secondary);
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: var(--shadow);
+      }
+
+      .file-name {
+        text-align: center;
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--accent);
+        padding: 16px;
+        background: var(--table-header);
+        border-radius: 8px;
+        margin-bottom: 20px;
+        word-break: break-all;
+      }
+
+      .section-title {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 10px;
+        margin-top: 20px;
+        color: var(--accent);
+      }
+
+      .section-title:first-child {
+        margin-top: 0;
+      }
+
+      .info-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 12px;
+      }
+
+      .info-table tr {
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .info-table tr:last-child {
+        border-bottom: none;
+      }
+
+      .info-table td {
+        padding: 10px 12px;
+      }
+
+      .info-table td:first-child {
+        font-weight: 600;
+        color: var(--text-secondary);
+        width: 130px;
+        white-space: nowrap;
+      }
+
+      .info-table td:last-child {
+        color: var(--text-primary);
+        word-break: break-word;
+      }
+
+      .value-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .value-badge {
+        background: var(--table-header);
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.88rem;
+        color: var(--text-primary);
+      }
+
+      .audio-track,
+      .sub-track {
+        background: var(--table-header);
+        border-radius: 8px;
+        padding: 14px;
+        margin-bottom: 10px;
+      }
+
+      .audio-track:last-child,
+      .sub-track:last-child {
+        margin-bottom: 0;
+      }
+
+      .track-main {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .track-field {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+
+      .track-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        font-weight: 600;
+        letter-spacing: 0.5px;
+      }
+
+      .track-value {
+        font-size: 0.92rem;
+        color: var(--text-primary);
+      }
+
+      .track-detail {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding-top: 10px;
+        border-top: 1px solid var(--border-color);
+      }
+
+      .track-badge {
+        background: var(--border-color);
+        color: var(--text-primary);
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 500;
+      }
+
+      .images-section {
+        background: var(--bg-secondary);
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: var(--shadow);
+      }
+
+      .images-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 16px;
+        color: var(--accent);
+      }
+
+      .image-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 14px;
+        justify-items: center;
+      }
+
+      .image-wrapper {
+        cursor: pointer;
+        border-radius: 8px;
+        overflow: hidden;
+        transition: transform 0.3s, box-shadow 0.3s;
+        box-shadow: var(--shadow);
+        width: 100%;
+        max-width: 280px;
+      }
+
+      .image-wrapper:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      }
+
+      .image-wrapper img {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .modal.active {
+        display: flex;
+      }
+
+      .modal-content {
+        max-width: 90%;
+        max-height: 90%;
+        position: relative;
+      }
+
+      .modal-image {
+        max-width: 100%;
+        max-height: 90vh;
+        border-radius: 8px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      }
+
+      .modal-close {
+        position: absolute;
+        top: -40px;
+        right: 0;
+        background: white;
+        color: black;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 18px;
+        font-weight: bold;
+        transition: background 0.3s;
+      }
+
+      .modal-close:hover {
+        background: #f0f0f0;
+      }
+
+      .error {
+        background: #f8d7da;
+        color: #842029;
+        padding: 16px;
+        border-radius: 8px;
+        margin-top: 20px;
+        border: 1px solid #f5c2c7;
+      }
+      .nzb-download-icon {
+        cursor: pointer;
+        margin-left: 8px;
+        color: #666;
+        transition: color 0.2s;
+      }
+
+      .nzb-download-icon:hover {
+        color: #007bff;
+      }
+
+      @media (max-width: 768px) {
+        body {
+          padding: 12px;
         }
 
-        const params = new Proxy(new URLSearchParams(window.location.search), {
-            get: (searchParams, prop) => searchParams.get(prop),
-        });
-        let value = params.base64; 
-        let arrayChar = b64DecodeUnicode(value).split('#')
-        const text = arrayChar[0]
-        const $$html = document.getElementById('htmlimage');
-        const $$htmlinfo = document.getElementById('htmlinfo');
-        const core = BbobCore.default(BbobPresetHTML5.default());
-        const errorHandler = function (err) {
-            $$html.innerText = err.message
+        .header {
+          flex-direction: row;
+          gap: 12px;
         }
-        const parsed = core.process(text, {
-                onError: errorHandler,
-                render: BbobHtml.render,
+
+        .header h1 {
+          font-size: 1.2rem;
+        }
+
+        .info-table td:first-child {
+          width: 110px;
+          font-size: 0.88rem;
+        }
+
+        .image-grid {
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+          gap: 10px;
+        }
+
+        .file-name {
+          font-size: 1rem;
+          padding: 12px;
+        }
+
+        .track-main {
+          grid-template-columns: 1fr;
+          gap: 8px;
+        }
+      }
+
+      #htmlimage table {
+        display: none;
+      }
+    </style>
+  </head>
+  <body data-theme="dark">
+    <div class="container">
+      <div class="header">
+        <h1>Media Viewer</h1>
+        <button
+          class="theme-toggle"
+          onclick="toggleTheme()"
+          aria-label="Toggle theme"
+        >
+          <span id="theme-icon">☀️</span>
+        </button>
+      </div>
+
+      <div class="metadata-section">
+        <div id="metadata-content"></div>
+      </div>
+
+      <div class="images-section">
+        <div class="images-title">Screenshots</div>
+        <div id="image-gallery" class="image-grid"></div>
+      </div>
+
+      <div id="htmlimage" style="display: none"></div>
+    </div>
+
+    <div id="modal" class="modal" onclick="closeModal(event)">
+      <div class="modal-content">
+        <button class="modal-close" onclick="closeModal(event)">✕ Close</button>
+        <img
+          id="modal-image"
+          class="modal-image"
+          src=""
+          alt="Full size image"
+        />
+      </div>
+    </div>
+
+    <div id="error"></div>
+
+    <script type="text/javascript">
+      // Language mapping from ISO 639-2 to English names
+      const languageMap = {
+        eng: "English",
+        por: "Portuguese",
+        spa: "Spanish",
+        fre: "French",
+        fra: "French",
+        ger: "German",
+        deu: "German",
+        ita: "Italian",
+        jpn: "Japanese",
+        chi: "Chinese",
+        zho: "Chinese",
+        rus: "Russian",
+        ara: "Arabic",
+        hin: "Hindi",
+        kor: "Korean",
+        dut: "Dutch",
+        nld: "Dutch",
+        pol: "Polish",
+        tur: "Turkish",
+        swe: "Swedish",
+        dan: "Danish",
+        fin: "Finnish",
+        nor: "Norwegian",
+        nob: "Norwegian",
+        ces: "Czech",
+        cze: "Czech",
+        gre: "Greek",
+        ell: "Greek",
+        heb: "Hebrew",
+        tha: "Thai",
+        vie: "Vietnamese",
+        ind: "Indonesian",
+        fil: "Filipino",
+        may: "Malay",
+        msa: "Malay",
+        hun: "Hungarian",
+        ron: "Romanian",
+        rum: "Romanian",
+        ukr: "Ukrainian",
+        cat: "Catalan",
+        hrv: "Croatian",
+        srp: "Serbian",
+        bul: "Bulgarian",
+        slv: "Slovenian",
+        slk: "Slovak",
+        slo: "Slovak",
+        lit: "Lithuanian",
+        lav: "Latvian",
+        est: "Estonian",
+        fas: "Persian",
+        per: "Persian",
+        bel: "Belarusian",
+        alb: "Albanian",
+        sqi: "Albanian",
+        arm: "Armenian",
+        hye: "Armenian",
+        aze: "Azerbaijani",
+        baq: "Basque",
+        eus: "Basque",
+        ben: "Bengali",
+        bos: "Bosnian",
+        bre: "Breton",
+        bur: "Burmese",
+        mya: "Burmese",
+        glg: "Galician",
+        geo: "Georgian",
+        kat: "Georgian",
+        guj: "Gujarati",
+        hau: "Hausa",
+        ice: "Icelandic",
+        isl: "Icelandic",
+        gle: "Irish",
+        jav: "Javanese",
+        kan: "Kannada",
+        kaz: "Kazakh",
+        khm: "Central Khmer",
+        kir: "Kirghiz",
+        lao: "Lao",
+        mac: "Macedonian",
+        mkd: "Macedonian",
+        mal: "Malayalam",
+        mlt: "Maltese",
+        mar: "Marathi",
+        mon: "Mongolian",
+        nep: "Nepali",
+        pan: "Panjabi",
+        pus: "Pashto",
+        sin: "Sinhala",
+        tam: "Tamil",
+        tel: "Telugu",
+        tib: "Tibetan",
+        bod: "Tibetan",
+        urd: "Urdu",
+        uzb: "Uzbek",
+        wel: "Welsh",
+        cym: "Welsh",
+        yor: "Yoruba",
+        zul: "Zulu",
+      };
+
+      function getLanguageName(code) {
+        const lowerCode = code.toLowerCase();
+        return languageMap[lowerCode] || code;
+      }
+
+      function b64DecodeUnicode(str) {
+        return decodeURIComponent(
+          atob(str)
+            .split("")
+            .map(function (c) {
+              return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+            })
+            .join("")
+        );
+      }
+
+      function downloadNZB(filename) {
+        const url = `http://tangelo.whatbox.ca:51267/nzb?filename=${encodeURIComponent(
+          filename
+        )}`;
+
+        // Create a temporary anchor element to trigger download
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = ""; // Let the server specify the filename
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+
+      function toggleTheme() {
+        const html = document.documentElement;
+        const body = document.body;
+        const currentTheme = html.getAttribute("data-theme");
+        const newTheme = currentTheme === "dark" ? "light" : "dark";
+        html.setAttribute("data-theme", newTheme);
+        body.setAttribute("data-theme", newTheme);
+
+        document.getElementById("theme-icon").textContent =
+          newTheme === "dark" ? "☀️" : "🌙";
+
+        localStorage.setItem("theme", newTheme);
+      }
+
+      function openModal(url) {
+        const fullImageUrl = url
+          .replace("pixhost.to/show/", "img1.pixhost.to/images/")
+          .replace("_tmp", "_tmp");
+        document.getElementById("modal-image").src = fullImageUrl;
+        document.getElementById("modal").classList.add("active");
+      }
+
+      function closeModal(event) {
+        if (
+          event.target.id === "modal" ||
+          event.target.classList.contains("modal-close")
+        ) {
+          document.getElementById("modal").classList.remove("active");
+        }
+      }
+
+      function parseMetadata(text) {
+        const lines = text.split("\n").filter((line) => line.trim());
+        const metadataContainer = document.getElementById("metadata-content");
+
+        let fileName = "";
+        const generalInfo = [];
+        const audioTracks = [];
+        const subTracks = [];
+
+        lines.forEach((line) => {
+          const match = line.match(/^(.+?)\.+:\s*(.+)$/);
+          if (match) {
+            const key = match[1].trim();
+            const value = match[2].trim();
+
+            if (key === "Name") {
+              fileName = value;
+            } else if (key === "Audio") {
+              audioTracks.push(value);
+            } else if (key === "Subs") {
+              subTracks.push(value);
+            } else {
+              generalInfo.push({ key, value });
+            }
+          }
         });
-        $$htmlinfo.innerText = arrayChar[1];
+
+        // Display file name
+        if (fileName) {
+          const nameDiv = document.createElement("div");
+          nameDiv.className = "file-name";
+          nameDiv.textContent = fileName;
+
+          // Add NZB download icon
+          const nzbIcon = document.createElement("span");
+          nzbIcon.className = "nzb-download-icon";
+          nzbIcon.textContent = "💾";
+          nzbIcon.title = "Download NZB";
+          nzbIcon.onclick = () => downloadNZB(fileName);
+          nameDiv.appendChild(nzbIcon);
+
+          metadataContainer.appendChild(nameDiv);
+        }
+
+        // Display general info
+        if (generalInfo.length > 0) {
+          const sectionTitle = document.createElement("div");
+          sectionTitle.className = "section-title";
+          sectionTitle.textContent = "General Information";
+          metadataContainer.appendChild(sectionTitle);
+
+          const table = document.createElement("table");
+          table.className = "info-table";
+
+          generalInfo.forEach((item) => {
+            const row = document.createElement("tr");
+
+            const keyCell = document.createElement("td");
+            keyCell.textContent = item.key + ":";
+
+            const valueCell = document.createElement("td");
+
+            // Check if value contains "//" separator
+            if (item.value.includes("//")) {
+              const parts = item.value.split("//").map((p) => p.trim());
+              const badgesDiv = document.createElement("div");
+              badgesDiv.className = "value-badges";
+
+              parts.forEach((part) => {
+                const badge = document.createElement("span");
+                badge.className = "value-badge";
+                badge.textContent = part;
+                badgesDiv.appendChild(badge);
+              });
+
+              valueCell.appendChild(badgesDiv);
+            } else {
+              valueCell.textContent = item.value;
+            }
+
+            row.appendChild(keyCell);
+            row.appendChild(valueCell);
+            table.appendChild(row);
+          });
+
+          metadataContainer.appendChild(table);
+        }
+
+        // Display audio tracks
+        if (audioTracks.length > 0) {
+          const sectionTitle = document.createElement("div");
+          sectionTitle.className = "section-title";
+          sectionTitle.textContent = "Audio Tracks";
+          metadataContainer.appendChild(sectionTitle);
+
+          audioTracks.forEach((track, index) => {
+            const trackDiv = document.createElement("div");
+            trackDiv.className = "audio-track";
+
+            const parts = track.split("//").map((p) => p.trim());
+
+            // Parse main audio info (first part)
+            const mainInfo = parts[0] || "";
+            const audioMatch = mainInfo.match(
+              /^(\w+)\s+(.+?)\s+(\d+\s*kb\/s)\s+(?:(\w+)\s+)?(\d+ch)$/
+            );
+
+            if (audioMatch) {
+              const lang = audioMatch[1];
+              const codec = audioMatch[2].trim();
+              const bitrate = audioMatch[3];
+              const type = audioMatch[4];
+              const channels = audioMatch[5];
+
+              const mainDiv = document.createElement("div");
+              mainDiv.className = "track-main";
+
+              // Language
+              const langField = document.createElement("div");
+              langField.className = "track-field";
+              const langLabel = document.createElement("div");
+              langLabel.className = "track-label";
+              langLabel.textContent = "Language";
+              const langValue = document.createElement("div");
+              langValue.className = "track-value";
+              langValue.textContent = getLanguageName(lang);
+              langField.appendChild(langLabel);
+              langField.appendChild(langValue);
+
+              // Codec
+              const codecField = document.createElement("div");
+              codecField.className = "track-field";
+              const codecLabel = document.createElement("div");
+              codecLabel.className = "track-label";
+              codecLabel.textContent = "Codec";
+              const codecValue = document.createElement("div");
+              codecValue.className = "track-value";
+              codecValue.textContent = codec;
+              codecField.appendChild(codecLabel);
+              codecField.appendChild(codecValue);
+
+              // Bitrate
+              const bitrateField = document.createElement("div");
+              bitrateField.className = "track-field";
+              const bitrateLabel = document.createElement("div");
+              bitrateLabel.className = "track-label";
+              bitrateLabel.textContent = "Bitrate";
+              const bitrateValue = document.createElement("div");
+              bitrateValue.className = "track-value";
+              bitrateValue.textContent = bitrate;
+              bitrateField.appendChild(bitrateLabel);
+              bitrateField.appendChild(bitrateValue);
+
+              // Type
+              const typeField = document.createElement("div");
+              typeField.className = "track-field";
+              const typeLabel = document.createElement("div");
+              typeLabel.className = "track-label";
+              typeLabel.textContent = "Type";
+              const typeValue = document.createElement("div");
+              typeValue.className = "track-value";
+              typeValue.textContent = type;
+              typeField.appendChild(typeLabel);
+              typeField.appendChild(typeValue);
+
+              // Channels
+              const channelsField = document.createElement("div");
+              channelsField.className = "track-field";
+              const channelsLabel = document.createElement("div");
+              channelsLabel.className = "track-label";
+              channelsLabel.textContent = "Channels";
+              const channelsValue = document.createElement("div");
+              channelsValue.className = "track-value";
+              channelsValue.textContent = channels;
+              channelsField.appendChild(channelsLabel);
+              channelsField.appendChild(channelsValue);
+
+              mainDiv.appendChild(langField);
+              mainDiv.appendChild(codecField);
+              mainDiv.appendChild(bitrateField);
+              mainDiv.appendChild(typeField);
+              mainDiv.appendChild(channelsField);
+
+              trackDiv.appendChild(mainDiv);
+            } else {
+              const mainDiv = document.createElement("div");
+              mainDiv.className = "track-info";
+              mainDiv.textContent = mainInfo;
+              trackDiv.appendChild(mainDiv);
+            }
+
+            // Additional details as badges
+            if (parts.length > 1) {
+              const detailDiv = document.createElement("div");
+              detailDiv.className = "track-detail";
+
+              for (let i = 1; i < parts.length; i++) {
+                const badge = document.createElement("span");
+                badge.className = "track-badge";
+                badge.textContent = parts[i];
+                detailDiv.appendChild(badge);
+              }
+
+              trackDiv.appendChild(detailDiv);
+            }
+
+            metadataContainer.appendChild(trackDiv);
+          });
+        }
+
+        // Display subtitles
+        if (subTracks.length > 0) {
+          const sectionTitle = document.createElement("div");
+          sectionTitle.className = "section-title";
+          sectionTitle.textContent = "Subtitles";
+          metadataContainer.appendChild(sectionTitle);
+
+          subTracks.forEach((track) => {
+            const trackDiv = document.createElement("div");
+            trackDiv.className = "sub-track";
+
+            const subs = track.split(",").map((s) => s.trim());
+            const detailDiv = document.createElement("div");
+            detailDiv.className = "track-detail";
+
+            subs.forEach((sub) => {
+              // Try to extract language code and convert it
+              const langMatch = sub.match(/^(\w+)\s*(.*)$/);
+              if (langMatch) {
+                const langCode = langMatch[1];
+                const rest = langMatch[2];
+                const langName = getLanguageName(langCode);
+                const displayText = rest ? `${langName} ${rest}` : langName;
+
+                const badge = document.createElement("span");
+                badge.className = "track-badge";
+                badge.textContent = displayText;
+                detailDiv.appendChild(badge);
+              } else {
+                const badge = document.createElement("span");
+                badge.className = "track-badge";
+                badge.textContent = sub;
+                detailDiv.appendChild(badge);
+              }
+            });
+
+            trackDiv.appendChild(detailDiv);
+            metadataContainer.appendChild(trackDiv);
+          });
+        }
+      }
+
+      function extractImages(html) {
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = html;
+        const links = tempDiv.querySelectorAll("a");
+        const gallery = document.getElementById("image-gallery");
+
+        links.forEach((link) => {
+          const img = link.querySelector("img");
+          if (img) {
+            const wrapper = document.createElement("div");
+            wrapper.className = "image-wrapper";
+            wrapper.onclick = () => openModal(link.href);
+
+            const newImg = document.createElement("img");
+            newImg.src = img.src;
+            newImg.alt = "Screenshot";
+
+            wrapper.appendChild(newImg);
+            gallery.appendChild(wrapper);
+          }
+        });
+      }
+
+      // Initialize theme
+      const savedTheme = localStorage.getItem("theme") || "dark";
+      document.documentElement.setAttribute("data-theme", savedTheme);
+      document.getElementById("theme-icon").textContent =
+        savedTheme === "dark" ? "☀️" : "🌙";
+
+      // Parse URL parameters
+      const params = new Proxy(new URLSearchParams(window.location.search), {
+        get: (searchParams, prop) => searchParams.get(prop),
+      });
+
+      try {
+        let value = params.base64;
+        if (!value) {
+          throw new Error("No base64 parameter found in URL");
+        }
+
+        let arrayChar = b64DecodeUnicode(value).split("#");
+        const bbcodeText = arrayChar[0];
+        const metadataText = arrayChar[1];
+
+        const $$html = document.getElementById("htmlimage");
+        const core = BbobCore.default(BbobPresetHTML5.default());
+
+        const errorHandler = function (err) {
+          document.getElementById("error").innerHTML =
+            '<div class="error">Error parsing BBCode: ' +
+            err.message +
+            "</div>";
+        };
+
+        const parsed = core.process(bbcodeText, {
+          onError: errorHandler,
+          render: BbobHtml.render,
+        });
+
         $$html.innerHTML = parsed.html;
 
-  </script>
-</body>
+        // Parse and display metadata
+        if (metadataText) {
+          parseMetadata(metadataText);
+        }
+
+        // Extract and display images
+        extractImages(parsed.html);
+      } catch (err) {
+        document.getElementById("error").innerHTML =
+          '<div class="error">Error: ' + err.message + "</div>";
+      }
+
+      // Close modal on ESC key
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+          document.getElementById("modal").classList.remove("active");
+        }
+      });
+    </script>
+  </body>
 </html>
