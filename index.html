@@ -522,7 +522,7 @@
 
       function b64DecodeUnicode(str) {
         return decodeURIComponent(
-          atob(str)
+          atob(str.replace(/\s/g, '+'))
             .split("")
             .map(function (c) {
               return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
